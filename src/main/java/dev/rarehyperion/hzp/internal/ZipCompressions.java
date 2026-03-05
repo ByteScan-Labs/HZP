@@ -34,7 +34,8 @@ public final class ZipCompressions {
     // LFH fixed-header size (without name/extra).
     private static final int LFH_FIXED_SIZE = 30;
 
-    private static final long DATA_DESC_SCAN_LIMIT = 64L * 1024 * 1024;
+    private static final long DATA_DESC_SCAN_LIMIT = 4L * 1024 * 1024;  // 4MB
+    private static final long MAX_DECOMP_SIZE      = 64L * 1024 * 1024; // 512 MB
 
     public static byte[] decompress(final LocalFileHeader lfh) throws IOException, DataFormatException {
         return ZipCompressions.inflate(lfh.getCompressedData(), lfh);
@@ -63,25 +64,38 @@ public final class ZipCompressions {
         final int  nameLen       = LittleEndian.uint16(lfhFixed, 26);
         final int  extraLen      = LittleEndian.uint16(lfhFixed, 28);
 
-        raf.seek(lfhAbsOffset + LFH_FIXED_SIZE + nameLen);
+        // We're clamping untrusted LFH extraLen to file bounds to prevent overshooting into a CD/EOCD.
+        final long extraFieldStart = lfhAbsOffset + LFH_FIXED_SIZE + nameLen;
+        final int  safeExtraLen    = (int) Math.min(extraLen, Math.max(0L, raf.length() - extraFieldStart));
 
-        final byte[] localExtra = new byte[extraLen];
-        if(extraLen > 0) raf.readFully(localExtra);
+        raf.seek(extraFieldStart);
 
-        final long dataStart = lfhAbsOffset + LFH_FIXED_SIZE + nameLen + extraLen;
+        final byte[] localExtra = new byte[safeExtraLen];
+        if(safeExtraLen > 0) raf.readFully(localExtra);
+
+        final long dataStart = extraFieldStart + safeExtraLen;
 
         long compSize = cdCompSize; // CD is authoritative.
 
         // ZIP64 fallback: if CD has no size info (e.g. data descriptor path), try local extra.
         if(compSize == 0xFFFFFFFFL) {
             final Zip64EF z64 = Zip64EF.parse(localExtra, compSize, localUncomp, 0);
-            if (z64 != null && z64.compressedSize > 0) compSize = z64.compressedSize;
+            if (z64 != null && z64.compressedSize > 0){
+                compSize = z64.compressedSize;
+            } else if(localCompSize > 0 && localCompSize != 0xFFFFFFFFL) {
+
+                compSize = localCompSize;
+            }
         }
 
 
         // Data descriptor fallback: scan forward for 'PK\x07\x08'.
         if(compSize == 0 && (localGpFlag & 0x0008) != 0) {
-            compSize = ZipCompressions.findDataDescriptorSize(raf, dataStart, name);
+            if(localCompSize > 0 && localCompSize <= Integer.MAX_VALUE) {
+                compSize = localCompSize;
+            } else {
+                compSize = ZipCompressions.findDataDescriptorSize(raf, dataStart, name);
+            }
         } else if(compSize == 0 && localCompSize != 0) {
             compSize = localCompSize;
         }
@@ -106,8 +120,13 @@ public final class ZipCompressions {
                 try (final Inflater inflater = new Inflater(true)) {
                     inflater.setInput(compressed);
 
-                    final int initCap = (lfh.getUncompressedSize() > 0 && lfh.getUncompressedSize() <= 64 << 20)
-                            ? (int) lfh.getUncompressedSize()
+                    final long declaredSize = lfh.getUncompressedSize();
+                    final long maxOutput = (declaredSize > 0 && declaredSize <= MAX_DECOMP_SIZE)
+                            ? declaredSize
+                            : MAX_DECOMP_SIZE;
+
+                    final int initCap = (declaredSize > 0 && declaredSize <= 64 << 20)
+                            ? (int) declaredSize
                             : Math.max(compressed.length * 3, 8192);
 
                     final ByteArrayOutputStream bos = new ByteArrayOutputStream(initCap);
@@ -117,6 +136,10 @@ public final class ZipCompressions {
                         final int n = inflater.inflate(buffer);
 
                         if (n > 0) {
+                            if(bos.size() + n > maxOutput) {
+                                throw new ZipException("Decompressed size exceeds safety limit (" + maxOutput + " bytes) for: " + lfh.getName());
+                            }
+
                             bos.write(buffer, 0, n);
                         } else if (inflater.finished()) {
                             break;
