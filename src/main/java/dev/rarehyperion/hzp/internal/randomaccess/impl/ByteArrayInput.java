@@ -48,7 +48,7 @@ public class ByteArrayInput implements RandomAccessInput {
 
     @Override
     public void seek(final long position) throws IOException {
-        if(this.position < 0 || this.position > this.data.length) {
+        if(position < 0 || position > this.data.length) {
             throw new IOException("Seek position out of bounds: " + position + " (length=" + this.data.length + ")");
         }
 
