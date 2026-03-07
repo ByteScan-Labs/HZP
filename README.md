@@ -1,5 +1,7 @@
 # HZP — Hardened ZIP Parser
 
+[![](https://jitpack.io/v/ByteScan-Labs/HZP.svg)](https://jitpack.io/#ByteScan-Labs/HZP)
+
 A Java library for parsing ZIP archives with structural anomalies or evasion techniques commonly used to bypass security tools.
 
 This source was primarily made available for transparency at ByteScan, but feel free to use it as long as it complies with our license.
