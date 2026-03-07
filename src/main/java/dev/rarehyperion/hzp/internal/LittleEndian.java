@@ -66,6 +66,22 @@ public final class LittleEndian {
     }
 
     /**
+     * Seeks to {@code position}, peeks 4 bytes as a little-endian signed int, then restores the original position.
+     */
+    static int peekInt32(final RandomAccessInput raf, final long position) throws IOException {
+        try {
+            final long cur = raf.getPosition();
+            raf.seek(position);
+
+            final int v = LittleEndian.readInt32LE(raf);
+            raf.seek(cur);
+            return v;
+        } catch (final EOFException exception) {
+            return 0;
+        }
+    }
+
+    /**
      * Read a signed 32-bit integer in little-endian byte order.
      */
     static int readInt32LE(final RandomAccessInput raf) throws IOException {

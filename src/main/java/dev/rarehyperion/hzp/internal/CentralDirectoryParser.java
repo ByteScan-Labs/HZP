@@ -141,7 +141,24 @@ public final class CentralDirectoryParser {
 
         for (final int idx : sortOrder) {
             final CdFields cd = rawFields.get(idx);
-            final byte[] compressedData = ZipCompressions.readCompressedBytes(raf, cd.name, cd.compSize, cd.localRelOff, archiveStart);
+
+            // If the LFH offset doesn't point to a real LFH, then it must be a shadow entry with empty data.
+            final long lfhAbsOffset = archiveStart + cd.localRelOff;
+            boolean isShadow = false;
+
+            if(lfhAbsOffset >= 0 && lfhAbsOffset + 4 <= raf.length()) {
+                final int signature = LittleEndian.peekInt32(raf, lfhAbsOffset);
+
+                if(signature != EocdParser.SIG_LOCAL_FILE) {
+                    isShadow = true;
+                    flags.add(Flag.SHADOW_LOCAL_HEADERS);
+                }
+            } else {
+                isShadow = true;
+                flags.add(Flag.GHOST_LOCAL_HEADERS);
+            }
+
+            final byte[] compressedData = isShadow ? new byte[0] : ZipCompressions.readCompressedBytes(raf, cd.name, cd.compSize, cd.localRelOff, archiveStart);
             lfhs[idx] = new LocalFileHeader(cd.name, cd.compSize, cd.uncompSize, cd.crc32, cd.compMethod, cd.gpFlag, cd.localRelOff, compressedData, archiveStart);
         }
 
