@@ -46,33 +46,27 @@ public final class ZipCompressions {
 
     static byte[] readCompressedBytes(final RandomAccessFile raf, final String name, final long cdCompSize, final long localRelOff, final long archiveStart) throws IOException {
         final long lfhAbsOffset = archiveStart + localRelOff;
-
         raf.seek(lfhAbsOffset);
 
-        final int sig = LittleEndian.readInt32LE(raf);
+        final byte[] lfhFixed = new byte[LFH_FIXED_SIZE];
+        raf.readFully(lfhFixed);
 
-        if(sig != EocdParser.SIG_LOCAL_FILE) {
+        if ((int) LittleEndian.uint32(lfhFixed, 0) != EocdParser.SIG_LOCAL_FILE) {
             throw new ZipException(String.format(
                     "Local file header signature missing at 0x%X (got 0x%08X); archiveStart=0x%X relOffset=0x%X name='%s'",
-                    lfhAbsOffset, sig, archiveStart, localRelOff, name
-            ));
+                    lfhAbsOffset, LittleEndian.uint32(lfhFixed, 0), archiveStart, localRelOff, name));
         }
 
-        /* versionNeeded        */ LittleEndian.readUInt16LE(raf);
-        final int localGpFlag    = LittleEndian.readUInt16LE(raf);
-        /* method               */ LittleEndian.readUInt16LE(raf);
-        /* modTime              */ LittleEndian.readUInt16LE(raf);
-        /* modDate              */ LittleEndian.readUInt16LE(raf);
-        /* crc32                */ LittleEndian.readUInt32LE(raf);
-        final long localCompSize = LittleEndian.readUInt32LE(raf);
-        final long localUncomp   = LittleEndian.readUInt32LE(raf);
-        final int nameLen        = LittleEndian.readUInt16LE(raf);
-        final int extraLen       = LittleEndian.readUInt16LE(raf);
+        final int  localGpFlag   = LittleEndian.uint16(lfhFixed, 6);
+        final long localCompSize = LittleEndian.uint32(lfhFixed, 18);
+        final long localUncomp   = LittleEndian.uint32(lfhFixed, 22);
+        final int  nameLen       = LittleEndian.uint16(lfhFixed, 26);
+        final int  extraLen      = LittleEndian.uint16(lfhFixed, 28);
 
-        raf.skipBytes(nameLen);
+        raf.seek(lfhAbsOffset + LFH_FIXED_SIZE + nameLen);
 
         final byte[] localExtra = new byte[extraLen];
-        raf.readFully(localExtra);
+        if(extraLen > 0) raf.readFully(localExtra);
 
         final long dataStart = lfhAbsOffset + LFH_FIXED_SIZE + nameLen + extraLen;
 
@@ -81,13 +75,14 @@ public final class ZipCompressions {
         // ZIP64 fallback: if CD has no size info (e.g. data descriptor path), try local extra.
         if(compSize == 0xFFFFFFFFL) {
             final Zip64EF z64 = Zip64EF.parse(localExtra, compSize, localUncomp, 0);
-            if(z64 != null && z64.compressedSize > 0) compSize = z64.compressedSize;
+            if (z64 != null && z64.compressedSize > 0) compSize = z64.compressedSize;
         }
+
 
         // Data descriptor fallback: scan forward for 'PK\x07\x08'.
         if(compSize == 0 && (localGpFlag & 0x0008) != 0) {
             compSize = ZipCompressions.findDataDescriptorSize(raf, dataStart, name);
-        } else if(compSize == 0 & localCompSize != 0) {
+        } else if(compSize == 0 && localCompSize != 0) {
             compSize = localCompSize;
         }
 
@@ -96,10 +91,8 @@ public final class ZipCompressions {
         }
 
         raf.seek(dataStart);
-
         final byte[] compressed = new byte[(int) compSize];
         raf.readFully(compressed);
-
         return compressed;
     }
 

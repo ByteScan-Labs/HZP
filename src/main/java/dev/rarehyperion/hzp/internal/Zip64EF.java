@@ -47,14 +47,19 @@ public class Zip64EF {
 
                 int j = i;
 
-                if (cdUncompressed == 0xFFFFFFFFL && j + 8 <= i + dataSize)
-                    zip64ef.uncompressedSize = LittleEndian.int64(extra, j); j += 8;
+                if (cdUncompressed == 0xFFFFFFFFL && j + 8 <= i + dataSize) {
+                    zip64ef.uncompressedSize = LittleEndian.int64(extra, j);
+                    j += 8;
+                }
 
-                if (cdCompressed   == 0xFFFFFFFFL && j + 8 <= i + dataSize)
-                    zip64ef.compressedSize = LittleEndian.int64(extra, j); j += 8;
+                if (cdCompressed   == 0xFFFFFFFFL && j + 8 <= i + dataSize) {
+                    zip64ef.compressedSize = LittleEndian.int64(extra, j);
+                    j += 8;
+                }
 
-                if (cdOffset == 0xFFFFFFFFL && j + 8 <= i + dataSize)
+                if (cdOffset == 0xFFFFFFFFL && j + 8 <= i + dataSize) {
                     zip64ef.localHeaderOffset = LittleEndian.int64(extra, j);
+                }
 
                 return zip64ef;
             }
