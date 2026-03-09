@@ -16,6 +16,7 @@
 
 package dev.rarehyperion.hzp.internal;
 
+import dev.rarehyperion.hzp.internal.randomaccess.RandomAccessInput;
 import dev.rarehyperion.hzp.model.CentralDirectoryFileHeader;
 import dev.rarehyperion.hzp.model.LocalFileHeader;
 
@@ -44,7 +45,7 @@ public final class ZipCompressions {
         return ZipCompressions.decompress(cd.getLinkedLFH());
     }
 
-    static byte[] readCompressedBytes(final RandomAccessFile raf, final String name, final long cdCompSize, final long localRelOff, final long archiveStart) throws IOException {
+    static byte[] readCompressedBytes(final RandomAccessInput raf, final String name, final long cdCompSize, final long localRelOff, final long archiveStart) throws IOException {
         final long lfhAbsOffset = archiveStart + localRelOff;
         raf.seek(lfhAbsOffset);
 
@@ -136,7 +137,7 @@ public final class ZipCompressions {
         }
     }
 
-    private static long findDataDescriptorSize(final RandomAccessFile raf, final long dataStart, final String entryName) throws IOException {
+    private static long findDataDescriptorSize(final RandomAccessInput raf, final long dataStart, final String entryName) throws IOException {
         final long fileLen = raf.length();
         final long scanEnd = Math.min(dataStart + DATA_DESC_SCAN_LIMIT, fileLen);
         final byte[] window = new byte[65536];

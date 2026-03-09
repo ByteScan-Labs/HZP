@@ -17,11 +17,11 @@
 package dev.rarehyperion.hzp.internal;
 
 import dev.rarehyperion.hzp.Flag;
+import dev.rarehyperion.hzp.internal.randomaccess.RandomAccessInput;
 import dev.rarehyperion.hzp.model.CentralDirectoryFileHeader;
 import dev.rarehyperion.hzp.model.LocalFileHeader;
 
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.zip.ZipException;
@@ -32,7 +32,7 @@ public final class CentralDirectoryParser {
     private static final int FLAG_DATA_DESC = 0x0008;
     private static final int FLAG_EFS       = 0x0800;
 
-    public static List<CentralDirectoryFileHeader> parse(final RandomAccessFile raf, final long cdStartAbs, final long cdSize, final long archiveStart, final EnumSet<Flag> flags) throws IOException {
+    public static List<CentralDirectoryFileHeader> parse(final RandomAccessInput raf, final long cdStartAbs, final long cdSize, final long archiveStart, final EnumSet<Flag> flags) throws IOException {
         final long fileLen = raf.length();
         final long available = fileLen - cdStartAbs;
 

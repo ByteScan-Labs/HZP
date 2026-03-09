@@ -19,6 +19,9 @@ package dev.rarehyperion.hzp;
 import dev.rarehyperion.hzp.internal.CentralDirectoryParser;
 import dev.rarehyperion.hzp.internal.EocdInfo;
 import dev.rarehyperion.hzp.internal.EocdParser;
+import dev.rarehyperion.hzp.internal.randomaccess.RandomAccessInput;
+import dev.rarehyperion.hzp.internal.randomaccess.impl.ByteArrayInput;
+import dev.rarehyperion.hzp.internal.randomaccess.impl.FileInput;
 import dev.rarehyperion.hzp.model.CentralDirectoryFileHeader;
 import dev.rarehyperion.hzp.model.EndOfCentralDirectory;
 import dev.rarehyperion.hzp.model.LocalFileHeader;
@@ -40,7 +43,7 @@ public final class ZipIO {
     /** Parses the given file as a ZIP Archive. */
     public static ZipArchive read(final File file) throws IOException {
         try(final RandomAccessFile raf = new RandomAccessFile(file, "r")) {
-            return ZipIO.parse(raf);
+            return ZipIO.parse(new FileInput(raf));
         }
     }
 
@@ -49,7 +52,13 @@ public final class ZipIO {
         return ZipIO.read(path.toFile());
     }
 
-    private static ZipArchive parse(final RandomAccessFile raf) throws IOException {
+    /** Parses an in-memory byte array as a ZIP Archive. */
+    public static ZipArchive read(final byte[] data) throws IOException {
+        if(data == null) throw new NullPointerException("Data must not be null");
+        return ZipIO.parse(new ByteArrayInput(data));
+    }
+
+    private static ZipArchive parse(final RandomAccessInput raf) throws IOException {
         final EnumSet<Flag> flags = EnumSet.noneOf(Flag.class);
 
         final EocdInfo eocd = EocdParser.findEocd(raf, flags);
@@ -60,11 +69,11 @@ public final class ZipIO {
         }
 
         if(eocd.commentLength > 0) {
-            flags.add(Flag.EOCD_COMMENT_PADDING);
+            flags.add(Flag.EOCD_COMMENT);
         }
 
-        final long[] positions = EocdParser.resolveCdPosition(raf, eocd, flags);
-        final long cdStartAbs = positions[0];
+        final long[] positions  = EocdParser.resolveCdPosition(raf, eocd, flags);
+        final long cdStartAbs   = positions[0];
         final long archiveStart = positions[1];
 
         final List<CentralDirectoryFileHeader> cdEntries =

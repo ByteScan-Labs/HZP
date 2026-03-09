@@ -16,9 +16,10 @@
 
 package dev.rarehyperion.hzp.internal;
 
+import dev.rarehyperion.hzp.internal.randomaccess.RandomAccessInput;
+
 import java.io.EOFException;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
@@ -53,9 +54,9 @@ public final class LittleEndian {
     /**
      * Peeks the next 4 bytes interpreted as little-endian signed int without moving the file pointer permanently.
      */
-    static int peekInt32(final RandomAccessFile raf) throws IOException {
+    static int peekInt32(final RandomAccessInput raf) throws IOException {
         try {
-            long cur = raf.getFilePointer();
+            long cur = raf.getPosition();
             int v = LittleEndian.readInt32LE(raf);
             raf.seek(cur);
             return v;
@@ -67,7 +68,7 @@ public final class LittleEndian {
     /**
      * Read a signed 32-bit integer in little-endian byte order.
      */
-    static int readInt32LE(final RandomAccessFile raf) throws IOException {
+    static int readInt32LE(final RandomAccessInput raf) throws IOException {
         final byte[] buffer = new byte[4];
         raf.readFully(buffer);
         return (buffer[0] & 0xFF) | ((buffer[1] & 0xFF) << 8) | ((buffer[2] & 0xFF) << 16) | ((buffer[3] & 0xFF) << 24);
@@ -76,7 +77,7 @@ public final class LittleEndian {
     /**
      * Read an unsigned 16-bit integer in little-endian byte order.
      */
-    static int readUInt16LE(final RandomAccessFile raf) throws IOException {
+    static int readUInt16LE(final RandomAccessInput raf) throws IOException {
         final byte[] buffer = new byte[2];
         raf.readFully(buffer);
         return (buffer[0] & 0xFF) | ((buffer[1] & 0xFF) << 8);
@@ -85,7 +86,7 @@ public final class LittleEndian {
     /**
      * Read am unsigned 32-bit integer in little-endian byte order.
      */
-    static long readUInt32LE(final RandomAccessFile raf) throws IOException {
+    static long readUInt32LE(final RandomAccessInput raf) throws IOException {
         final int v = LittleEndian.readInt32LE(raf);
         return Integer.toUnsignedLong(v);
     }
@@ -93,7 +94,7 @@ public final class LittleEndian {
     /**
      * Read an unsigned 64-bit value in little-endian byte order.
      */
-    static long readUInt64LE(final RandomAccessFile raf) throws IOException {
+    static long readUInt64LE(final RandomAccessInput raf) throws IOException {
         final byte[] buffer = new byte[8];
         raf.readFully(buffer);
         return (buffer[0] & 0xFFL) | ((buffer[1] & 0xFFL) << 8) | ((buffer[2] & 0xFFL) << 16) | ((buffer[3] & 0xFFL) << 24)

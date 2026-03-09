@@ -17,6 +17,7 @@
 package dev.rarehyperion.hzp.internal;
 
 import dev.rarehyperion.hzp.Flag;
+import dev.rarehyperion.hzp.internal.randomaccess.RandomAccessInput;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -51,7 +52,7 @@ public class EocdParser {
      *
      * @return A populated {@link EocdInfo}, or {@code null} if no valid EOCD was found.
      */
-    public static EocdInfo findEocd(final RandomAccessFile raf, final EnumSet<Flag> flags) throws IOException {
+    public static EocdInfo findEocd(final RandomAccessInput raf, final EnumSet<Flag> flags) throws IOException {
         final long fileLen = raf.length();
         final long maxSearch = Math.min(fileLen, MAX_EOCD_SEARCH);
         final long scanStart = fileLen - maxSearch;
@@ -116,7 +117,7 @@ public class EocdParser {
         return null;
     }
 
-    private static boolean isValidCd(final RandomAccessFile raf, final EocdInfo candidate, final long fileLen, final EnumSet<Flag> flags) throws IOException {
+    private static boolean isValidCd(final RandomAccessInput raf, final EocdInfo candidate, final long fileLen, final EnumSet<Flag> flags) throws IOException {
         final long cdA = candidate.eocdPos - candidate.centralDirSize;
 
         if(LittleEndian.inBounds(cdA, candidate.centralDirSize, fileLen)) {
@@ -141,7 +142,7 @@ public class EocdParser {
         return false;
     }
 
-    private static void checkZip64Locator(final RandomAccessFile raf, final long eocdPos, final long fileLen, final EnumSet<Flag> flags) throws IOException {
+    private static void checkZip64Locator(final RandomAccessInput raf, final long eocdPos, final long fileLen, final EnumSet<Flag> flags) throws IOException {
         if(eocdPos < EOCD64_LOC_SIZE) return;
         raf.seek(eocdPos - EOCD64_LOC_SIZE);
 
@@ -179,7 +180,7 @@ public class EocdParser {
         return info;
     }
 
-    private static EocdInfo readZip64(final RandomAccessFile raf, final long eocdPos) throws IOException {
+    private static EocdInfo readZip64(final RandomAccessInput raf, final long eocdPos) throws IOException {
         /* record size   */ LittleEndian.readUInt64LE(raf);
         /* versionMadeBy */ LittleEndian.readUInt16LE(raf);
         /* versionNeeded */ LittleEndian.readUInt16LE(raf);
@@ -198,7 +199,7 @@ public class EocdParser {
         return info;
     }
 
-    public static long[] resolveCdPosition(final RandomAccessFile raf, final EocdInfo eocd, final EnumSet<Flag> flags) throws IOException {
+    public static long[] resolveCdPosition(final RandomAccessInput raf, final EocdInfo eocd, final EnumSet<Flag> flags) throws IOException {
         final long fileLen = raf.length();
 
         long cdStartAbs = -1L;
