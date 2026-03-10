@@ -20,7 +20,6 @@ import dev.rarehyperion.hzp.Flag;
 import dev.rarehyperion.hzp.internal.randomaccess.RandomAccessInput;
 
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.util.EnumSet;
 import java.util.zip.ZipException;
 
@@ -211,8 +210,7 @@ public class EocdParser {
             raf.seek(candidateA);
 
             if(LittleEndian.peekInt32(raf) == SIG_CENTRAL_DIR) {
-                cdStartAbs = candidateB;
-                flags.add(Flag.CD_OFFSET_ANOMALY);
+                cdStartAbs = candidateA;
             }
         }
 
@@ -226,8 +224,9 @@ public class EocdParser {
         }
 
         if(cdStartAbs < 0) {
-            if(LittleEndian.inBounds(candidateA, eocd.centralDirSize, fileLen)) cdStartAbs = candidateA;
-            else if(LittleEndian.inBounds(candidateB, eocd.centralDirSize, fileLen)) {
+            if(LittleEndian.inBounds(candidateA, eocd.centralDirSize, fileLen)) {
+                cdStartAbs = candidateA;
+            } else if(LittleEndian.inBounds(candidateB, eocd.centralDirSize, fileLen)) {
                 cdStartAbs = candidateB;
                 flags.add(Flag.CD_OFFSET_ANOMALY);
             } else {
@@ -238,8 +237,16 @@ public class EocdParser {
         long archiveStart = cdStartAbs - eocd.centralDirOffset;
 
         if(archiveStart < 0) {
+            // If the stored offset actually looks like a CD, then will we switch.
+            if(LittleEndian.inBounds(eocd.centralDirOffset, eocd.centralDirSize, fileLen)) {
+                raf.seek(eocd.centralDirOffset);
+
+                if(LittleEndian.peekInt32(raf) == SIG_CENTRAL_DIR) {
+                    cdStartAbs = eocd.centralDirOffset;
+                }
+            }
+
             archiveStart = 0;
-            cdStartAbs = eocd.centralDirOffset;
             flags.add(Flag.CD_OFFSET_ANOMALY);
         } else if(archiveStart > 0) {
             flags.add(Flag.PREPENDED_DATA);
