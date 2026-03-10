@@ -22,7 +22,6 @@ import dev.rarehyperion.hzp.model.LocalFileHeader;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 import java.util.zip.ZipException;
