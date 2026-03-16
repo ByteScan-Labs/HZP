@@ -177,7 +177,7 @@ public final class ZipCompressions {
                     return (pos + i) - dataStart;
                 }
             }
-
+            if (toRead < 4) break; // impossible to find sig in less than 4 bytes
             pos += toRead - 3;
         }
 
