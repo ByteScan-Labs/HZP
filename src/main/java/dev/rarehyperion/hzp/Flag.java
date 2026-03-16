@@ -33,4 +33,5 @@ public enum Flag {
     FAKE_EOCD64,
     MISLEADING_EOCD64_LOCATOR,
     DECOY_EMBEDDED_ZIP,
+    CRASH_ENTRY,
 }
