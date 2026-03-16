@@ -20,7 +20,7 @@ public class MangledParseTest {
         for(final LocalFileHeader header : archive.getLocalFiles()) {
             if(header.getName().contains(".class")) {
                 final byte[] compressed = header.getCompressedData();
-                assertNotEquals(0, compressed.length, "Failed to parse data from fake directory.");
+                assertNotEquals(0, compressed.length, "Failed to parse data from fake '" + header.getName() + "'.");
 
                 final byte[] decompressed = assertDoesNotThrow(() -> ZipCompressions.decompress(header), "Failed to decompress file data.");
 

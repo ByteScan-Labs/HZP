@@ -158,17 +158,16 @@ public final class CentralDirectoryParser {
                 flags.add(Flag.GHOST_LOCAL_HEADERS);
             }
 
-            byte[] compressedData;
-            if (isShadow) {
-                compressedData = new byte[0];
-            } else {
+            byte[] compressedData = new byte[0];
+
+            if (!isShadow) {
                 try {
                     compressedData = ZipCompressions.readCompressedBytes(raf, cd.name, cd.compSize, cd.localRelOff, archiveStart);
-                } catch (IOException e) {
-                    compressedData = new byte[0];
+                } catch (final IOException ignored) {
                     flags.add(Flag.CRASH_ENTRY);
                 }
             }
+
             lfhs[idx] = new LocalFileHeader(cd.name, cd.compSize, cd.uncompSize, cd.crc32, cd.compMethod, cd.gpFlag, cd.localRelOff, compressedData, archiveStart);
         }
 

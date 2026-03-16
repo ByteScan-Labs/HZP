@@ -35,7 +35,7 @@ public final class ZipCompressions {
     private static final int LFH_FIXED_SIZE = 30;
 
     private static final long DATA_DESC_SCAN_LIMIT = 4L * 1024 * 1024;  // 4MB
-    private static final long MAX_DECOMP_SIZE      = 64L * 1024 * 1024; // 512 MB
+    private static final long MAX_DECOMP_SIZE      = 64L * 1024 * 1024; // 64 MB
 
     public static byte[] decompress(final LocalFileHeader lfh) throws IOException, DataFormatException {
         return ZipCompressions.inflate(lfh.getCompressedData(), lfh);

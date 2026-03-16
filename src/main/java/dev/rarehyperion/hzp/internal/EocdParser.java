@@ -43,7 +43,7 @@ public class EocdParser {
     public static final int EOCD_FIXED_SIZE    = 22;
     public static final int EOCD64_FIXED_SIZE  = 56;
     public static final int EOCD64_LOC_SIZE    = 20;
-    private static final int MAX_EOCD_SEARCH    = 65557;
+    private static final int MAX_EOCD_SEARCH   = 65557;
 
     /**
      * Scans the tail of the file for a valid EOCD or EOCD64 record.
