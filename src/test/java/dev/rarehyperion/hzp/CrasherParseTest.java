@@ -14,7 +14,7 @@ import dev.rarehyperion.hzp.utility.Utility;
 
 public class CrasherParseTest {
     @ParameterizedTest()
-    @ValueSource(strings = { "crasher.jar" })
+    @ValueSource(strings = { "crasher.jar", "appended-613kb.jar" })
     @Timeout(10) // This timeout doesn't actually work, might need to put it in another thread if a regression is hit.
     void testCrasherZipParsing(final String name) {
         final ZipArchive archive = Utility.getArchive(name);
