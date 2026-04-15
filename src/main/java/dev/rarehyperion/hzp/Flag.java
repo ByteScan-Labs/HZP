@@ -18,6 +18,7 @@ package dev.rarehyperion.hzp;
 
 public enum Flag {
     PREPENDED_DATA,
+    APPENDED_DATA,
     ZIP64,
     MULTI_DISK,
     CD_OFFSET_ANOMALY,

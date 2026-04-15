@@ -43,7 +43,7 @@ public class EocdParser {
     public static final int EOCD_FIXED_SIZE    = 22;
     public static final int EOCD64_FIXED_SIZE  = 56;
     public static final int EOCD64_LOC_SIZE    = 20;
-    private static final int MAX_EOCD_SEARCH   = 65557;
+//    private static final int MAX_EOCD_SEARCH   = 65557;
 
     /**
      * Scans the tail of the file for a valid EOCD or EOCD64 record.
@@ -52,9 +52,8 @@ public class EocdParser {
      * @return A populated {@link EocdInfo}, or {@code null} if no valid EOCD was found.
      */
     public static EocdInfo findEocd(final RandomAccessInput raf, final EnumSet<Flag> flags) throws IOException {
-        final long fileLen = raf.length();
-        final long maxSearch = Math.min(fileLen, MAX_EOCD_SEARCH);
-        final long scanStart = fileLen - maxSearch;
+        final long maxSearch = raf.length();
+        final long scanStart = 0;
 
         final byte[] buffer = new byte[(int) maxSearch];
         raf.seek(scanStart);
@@ -71,15 +70,20 @@ public class EocdParser {
             final int commentLen = LittleEndian.uint16(buffer, i + 20);
 
             // The comment must fill exactly to the end of the file.
-            if(scanStart + i + EOCD_FIXED_SIZE + commentLen != fileLen)
+            if(i + EOCD_FIXED_SIZE + commentLen > buffer.length)
                 continue;
 
             final long eocdPos = scanStart + i;
             final EocdInfo candidate = EocdParser.readFromBuffer(buffer, i, eocdPos);
 
-            if(EocdParser.isValidCd(raf, candidate, fileLen, flags)) {
-                if(fakeEocdCount > 0) flags.add(Flag.FAKE_EOCD);
-                EocdParser.checkZip64Locator(raf, eocdPos, fileLen, flags);
+            if(EocdParser.isValidCd(raf, candidate, maxSearch, flags)) {
+                if(scanStart + i + EOCD_FIXED_SIZE + commentLen != maxSearch)
+                    flags.add(Flag.APPENDED_DATA);
+
+                if(fakeEocdCount > 0)
+                    flags.add(Flag.FAKE_EOCD);
+
+                EocdParser.checkZip64Locator(raf, eocdPos, maxSearch, flags);
                 return candidate;
             }
 
@@ -90,7 +94,7 @@ public class EocdParser {
                     /* disk */ LittleEndian.readUInt32LE(raf);
                     final long eocd64Pos = LittleEndian.readUInt64LE(raf);
 
-                    if(eocd64Pos + EOCD64_FIXED_SIZE <= fileLen) {
+                    if(eocd64Pos + EOCD64_FIXED_SIZE <= maxSearch) {
                         raf.seek(eocd64Pos);
 
                         if(LittleEndian.readInt32LE(raf) == SIG_EOCD64) {
